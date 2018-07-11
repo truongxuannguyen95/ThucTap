@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:layout_width="350dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Quản lý dấu vân tay"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:paddingLeft="10dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingLeft="10dp"
+            android:paddingRight="20dp"
+            android:layout_marginTop="10dp">
+            <TextView
+                android:text="Kích hoạt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textColor="#000"
+                android:gravity="center"/>
+            <Switch
+                android:id="@+id/swFingerprint"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:gravity="right"/>
+        </LinearLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="10dp"
+            android:paddingRight="10dp"
+            android:textSize="14sp"
+            android:text="(Kích hoạt truy cập ứng dụng\nbằng dấu vân tay trên thiết bị này)"/>
+        <Button
+            android:id="@+id/btnManagerFingerprint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Xác nhận"
+            android:textColor="@color/colorAccent"
+            android:layout_gravity="right"
+            android:layout_marginRight="20dp"
+            android:background="@android:color/transparent"/>
+    </LinearLayout>
+</LinearLayout>

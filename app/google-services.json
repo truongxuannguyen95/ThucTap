@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "945894482514",
+    "firebase_url": "https://file-encryption-a58b0.firebaseio.com",
+    "project_id": "file-encryption-a58b0",
+    "storage_bucket": "file-encryption-a58b0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945894482514:android:68fa1c7221230fde",
+        "android_client_info": {
+          "package_name": "com.example.nguyen.fileencryption"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "945894482514-d3sebbvdap14qnvu4vn9vohk9cj4iarq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCoIk0_3lAs_F95Cj8twUHZRErOampwkb4"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
