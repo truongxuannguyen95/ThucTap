@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
@@ -137,6 +138,8 @@ public class DecryptFragment extends Fragment {
             progressDialog.show();
         }
 
+        private boolean flag = false;
+
         @Override
         protected String doInBackground( String... params ) {
             byte[] bytes = new byte[16384];
@@ -151,18 +154,25 @@ public class DecryptFragment extends Fragment {
                 String fileData = aes.static_byteArrayToString(buffer.toByteArray());
                 aes.setKey(HomePage.myKey);
                 fileData = aes.Decrypt(fileData);
-                String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
-                String rootPath = storagePath + "/Download/Cryptol";
-                File root = new File(rootPath);
-                root.mkdirs();
-                File file = new File(rootPath + "/" + fileNameDecrypt);
-                file.createNewFile();
-                byte[] bytess = aes.static_stringToByteArray(fileData);
-                BufferedOutputStream bos = null;
-                bos = new BufferedOutputStream(new FileOutputStream(file, false));
-                bos.write(bytess);
-                bos.flush();
-                bos.close();
+                String check = fileData.substring(0,10);
+                if(check.equals("N14DCAT002")) {
+                    String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
+                    String rootPath = storagePath + "/Download/Cryptol";
+                    File root = new File(rootPath);
+                    root.mkdirs();
+                    File file = new File(rootPath + "/" + fileNameDecrypt);
+                    file.createNewFile();
+                    byte[] bytess = aes.static_stringToByteArray(fileData.substring(10));
+                    BufferedOutputStream bos = null;
+                    bos = new BufferedOutputStream(new FileOutputStream(file, false));
+                    bos.write(bytess);
+                    bos.flush();
+                    bos.close();
+                    flag = true;
+                } else {
+                    flag = false;
+                }
+
             } catch (FileNotFoundException e) {
                 if ( progressDialog != null && progressDialog.isShowing() ) {
                     progressDialog.dismiss();
@@ -185,7 +195,10 @@ public class DecryptFragment extends Fragment {
             fileNameDecrypt = "";
             if ( progressDialog != null && progressDialog.isShowing() ) {
                 progressDialog.dismiss();
-                Utilities.showAlertDialog("Giải mã thành công", "File giải mã được lưu trong thư mục /Download/Cryptol", getContext());
+                if(flag)
+                    Utilities.showAlertDialog("Giải mã thành công", "File giải mã được lưu trong thư mục /Download/Cryptol", getContext());
+                else
+                    Utilities.showAlertDialog("Giải mã thất bại", "File này chưa được mã hóa hoặc dùng không đúng key", getContext());
             }
         }
     }

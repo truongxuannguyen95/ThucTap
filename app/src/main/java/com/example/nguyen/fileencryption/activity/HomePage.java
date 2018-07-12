@@ -1,5 +1,6 @@
 package com.example.nguyen.fileencryption.activity;
 
+import android.annotation.TargetApi;
 import android.app.Dialog;
 import android.app.KeyguardManager;
 import android.content.Intent;
@@ -7,6 +8,9 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
+import android.security.keystore.KeyGenParameterSpec;
+import android.security.keystore.KeyPermanentlyInvalidatedException;
+import android.security.keystore.KeyProperties;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.content.ContextCompat;
@@ -20,8 +24,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.nguyen.fileencryption.FingerprintHandler;
 import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
 import com.example.nguyen.fileencryption.adapter.HomePager;
@@ -36,8 +42,28 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+
+
+/*GenerateKey(): sẽ tạo một khóa mã hóa sau đó được lưu trữ an toàn trên thiết bị.
+CipherInit(): sẽ khởi tạo mật mã và sẽ được sử dụng để tạo ra các FingerprintManager mã hóa.
+Đối tượng CryptoObject và kiểm tra khác nhau trước khi bắt đầu quá trình xác thực
+được thực hiện bên trong phương thức onCreate().*/
 
 public class HomePage extends AppCompatActivity {
 
@@ -48,6 +74,10 @@ public class HomePage extends AppCompatActivity {
     private String userID;
     private AES aes;
     public static String myKey;
+    private TextView tvReportFingerprint;
+    private KeyStore keyStore;
+    private Cipher cipher;
+    public static Dialog dialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +86,12 @@ public class HomePage extends AppCompatActivity {
 
         aes = new AES();
         aes.setKey(AES.cryptKey);
+
+        SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
+        Boolean check = pref.getBoolean("fingerprint", false);
+        if(check){
+            showDialogFingerprint();
+        }
 
         mData = FirebaseDatabase.getInstance().getReference();
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
@@ -141,7 +177,7 @@ public class HomePage extends AppCompatActivity {
                 } else if (!fingerprintManager.hasEnrolledFingerprints()) {
                     Utilities.showAlertDialog("Thông báo", "Vào 'Cài đặt -> Bảo mật -> Vân tay' và đăng ký ít nhất một vân tay để sử dụng tính năng này", HomePage.this);
                 } else {
-                    showDialogFingerprint();
+                    showDialogManagerFingerprint();
                 }
             }
         }
@@ -150,13 +186,17 @@ public class HomePage extends AppCompatActivity {
         }
         if(item.getItemId() == R.id.item_logout) {
             FirebaseAuth.getInstance().signOut();
+            SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
+            SharedPreferences.Editor editor = pref.edit();
+            editor.putString("password", "");
+            editor.commit();
             finish();
             startActivity(new Intent(HomePage.this, SignIn.class));
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public void showDialogFingerprint(){
+    public void showDialogManagerFingerprint(){
         dialogFingerprint = new Dialog(HomePage.this);
         dialogFingerprint.setContentView(R.layout.fingerprint_manager);
         dialogFingerprint.setCancelable(false);
@@ -164,7 +204,7 @@ public class HomePage extends AppCompatActivity {
         final Switch swFingerprint = dialogFingerprint.findViewById(R.id.swFingerprint);
         Button btnManagerFingerprint = dialogFingerprint.findViewById(R.id.btnManagerFingerprint);
         final SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
-        Boolean check = pref.getBoolean("fingerprint", false);
+        final Boolean check = pref.getBoolean("fingerprint", false);
         swFingerprint.setChecked(check);
         btnManagerFingerprint.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -172,10 +212,12 @@ public class HomePage extends AppCompatActivity {
                 SharedPreferences.Editor editor = pref.edit();
                 if(swFingerprint.isChecked()){
                     editor.putBoolean("fingerprint", true);
-                    Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được kích hoạt", Toast.LENGTH_SHORT).show();
+                    if(!check)
+                        Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được kích hoạt", Toast.LENGTH_SHORT).show();
                 } else {
                     editor.putBoolean("fingerprint", false);
-                    Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được hủy bỏ", Toast.LENGTH_SHORT).show();
+                    if(check)
+                        Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được hủy bỏ", Toast.LENGTH_SHORT).show();
                 }
                 editor.commit();
                 dialogFingerprint.dismiss();
@@ -227,5 +269,80 @@ public class HomePage extends AppCompatActivity {
         Pattern pattern = Pattern.compile(KEY_PATTERN);
         Matcher matcher = pattern.matcher(key);
         return matcher.matches();
+    }
+
+    public void showDialogFingerprint(){
+        dialog = new Dialog(HomePage.this);
+        dialog.setContentView(R.layout.fingerprint);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        tvReportFingerprint = dialog.findViewById(R.id.tvReportFingerprint);
+
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            fingerprintManager = (FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
+            keyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
+            if(!fingerprintManager.isHardwareDetected()) {
+                tvReportFingerprint.setText("Không phát hiện trình quét vân tay trên thiết bị của bạn");
+            } else if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
+                tvReportFingerprint.setText("Trình quét vân tay chưa được cấp quyền cho ứng dụng");
+            } else if(!keyguardManager.isKeyguardSecure()) {
+                tvReportFingerprint.setText("Màn hình khóa bảo mật chưa được thiết lập\nVào 'Cài đặt -> Bảo mật -> Vân tay' để thiết lập vân tay");
+            } else if (!fingerprintManager.hasEnrolledFingerprints()) {
+                tvReportFingerprint.setText("Vào 'Cài đặt -> Bảo mật -> Vân tay' và đăng ký ít nhất một vân tay để sử dụng tính năng này");
+            } else {
+                tvReportFingerprint.setText("Đặt ngón tay của bạn trên trình quét vân tay để truy cập ứng dụng");
+                generateKey();
+                if (cipherInit()) {
+                    FingerprintManager.CryptoObject cryptoObject = new FingerprintManager.CryptoObject(cipher);
+                    FingerprintHandler fingerprintHandler = new FingerprintHandler(this);
+                    fingerprintHandler.startAuth(fingerprintManager, cryptoObject);
+                }
+            }
+        }
+        dialog.show();
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private void generateKey() {
+        try {
+            keyStore = KeyStore.getInstance("AndroidKeyStore");
+            KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
+
+            keyStore.load(null);
+            keyGenerator.init(new
+                    KeyGenParameterSpec.Builder(AES.cryptKey,
+                    KeyProperties.PURPOSE_ENCRYPT |
+                            KeyProperties.PURPOSE_DECRYPT)
+                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+                    .setUserAuthenticationRequired(true)
+                    .setEncryptionPaddings(
+                            KeyProperties.ENCRYPTION_PADDING_PKCS7)
+                    .build());
+            keyGenerator.generateKey();
+        } catch (KeyStoreException | IOException | CertificateException
+                | NoSuchAlgorithmException | InvalidAlgorithmParameterException
+                | NoSuchProviderException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    public boolean cipherInit() {
+        try {
+            cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/" + KeyProperties.ENCRYPTION_PADDING_PKCS7);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            throw new RuntimeException("Failed to get Cipher", e);
+        }
+        try {
+            keyStore.load(null);
+            SecretKey key = (SecretKey) keyStore.getKey(AES.cryptKey, null);
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            return true;
+        } catch (KeyPermanentlyInvalidatedException e) {
+            return false;
+        } catch (KeyStoreException | CertificateException | UnrecoverableKeyException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException("Failed to init Cipher", e);
+        }
+
     }
 }

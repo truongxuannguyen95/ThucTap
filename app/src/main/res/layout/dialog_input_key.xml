@@ -42,7 +42,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Xác nhận"
-            android:textColor="@color/colorAccent"
+            android:textColor="#082bb7"
             android:layout_gravity="right"
             android:layout_marginRight="20dp"
             android:background="@android:color/transparent"/>

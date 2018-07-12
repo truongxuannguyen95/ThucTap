@@ -1,34 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent" android:background="#c8ffffff">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#c8ffffff">
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Xác thực dấu vân tay"
-        android:textColor="#000000"
-        android:textStyle="bold"
-        android:textSize="20sp"
-        android:padding="20dp" />
+    <LinearLayout
+        android:layout_width="350dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Xác thực dấu vân tay"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:textSize="18sp"
+            android:padding="10dp" />
 
-    <ImageView
-        android:id="@+id/imgFingerprint"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="72dp"
-        app:srcCompat="@mipmap/icon_fingerprint" />
+        <ImageView
+            android:id="@+id/imgFingerprint"
+            android:layout_width="75dp"
+            android:layout_height="75dp"
+            android:layout_gravity="center"
+            app:srcCompat="@mipmap/icon_fingerprint" />
 
-    <TextView
-        android:id="@+id/tvReportFingerprint"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="158dp"
-        android:padding="20dp"
-        android:text="Đặt ngón tay của bạn lên trình quét vân tay để tiến hành" />
-</RelativeLayout>
+        <TextView
+            android:id="@+id/tvReportFingerprint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="Đặt ngón tay của bạn lên trình quét vân tay để tiến hành" />
+
+        <Button
+            android:id="@+id/btnOK"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:padding="10dp"
+            android:layout_marginRight="15dp"
+            android:background="@android:color/transparent"
+            android:text="Xác nhận"
+            android:visibility="gone"
+            android:textColor="#070dc4" />
+    </LinearLayout>
+</LinearLayout>

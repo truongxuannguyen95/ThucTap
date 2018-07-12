@@ -52,12 +52,7 @@ public class SignIn extends AppCompatActivity {
     private EditText edtEmail, edtPassword;
     private Button btnSignIn, btnSignUp, btnForgetPw;
     private FirebaseAuth mAuth;
-    private TextView tvReportFingerprint;
-    private FingerprintManager fingerprintManager;
-    private KeyguardManager keyguardManager;
-    private KeyStore keyStore;
-    private Cipher cipher;
-    public static Dialog dialog;
+    private AES aes;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -70,10 +65,18 @@ public class SignIn extends AppCompatActivity {
         btnSignUp = findViewById(R.id.btnSignUp);
         btnForgetPw = findViewById(R.id.btnForgetPw);
 
-        final SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
-        Boolean check = pref.getBoolean("fingerprint", false);
-        if(check){
-            showDialogFingerprint();
+        aes = new AES();
+        aes.setKey(AES.cryptKey);
+
+        SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
+        String email = pref.getString("email", "");
+        String password = pref.getString("password", "");
+        if(email.length() > 1 && password.length() > 1) {
+            edtEmail.setText(email);
+            edtPassword.setText(aes.Decrypt(password));
+            SignIn(email, aes.Decrypt(password));
+        } else if(email.length() > 1) {
+            edtEmail.setText(email);
         }
 
         getPermissions();
@@ -132,82 +135,6 @@ public class SignIn extends AppCompatActivity {
         });
     }
 
-    public void showDialogFingerprint(){
-        dialog = new Dialog(SignIn.this);
-        dialog.setContentView(R.layout.fingerprint);
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        tvReportFingerprint = dialog.findViewById(R.id.tvReportFingerprint);
-
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            fingerprintManager = (FingerprintManager) getSystemService(FINGERPRINT_SERVICE);
-            keyguardManager = (KeyguardManager) getSystemService(KEYGUARD_SERVICE);
-            if(!fingerprintManager.isHardwareDetected()) {
-                tvReportFingerprint.setText("Không phát hiện trình quét vân tay trên thiết bị của bạn");
-            } else if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
-                tvReportFingerprint.setText("Trình quét vân tay chưa được cấp quyền cho ứng dụng");
-            } else if(!keyguardManager.isKeyguardSecure()) {
-                tvReportFingerprint.setText("Màn hình khóa bảo mật chưa được thiết lập\nVào 'Cài đặt -> Bảo mật -> Vân tay' để thiết lập vân tay");
-            } else if (!fingerprintManager.hasEnrolledFingerprints()) {
-                tvReportFingerprint.setText("Vào 'Cài đặt -> Bảo mật -> Vân tay' và đăng ký ít nhất một vân tay để sử dụng tính năng này");
-            } else {
-                tvReportFingerprint.setText("Đặt ngón tay của bạn trên trình quét vân tay để truy cập ứng dụng");
-                generateKey();
-                if (cipherInit()) {
-                    FingerprintManager.CryptoObject cryptoObject = new FingerprintManager.CryptoObject(cipher);
-                    FingerprintHandler fingerprintHandler = new FingerprintHandler(this);
-                    fingerprintHandler.startAuth(fingerprintManager, cryptoObject);
-                }
-            }
-        }
-        dialog.show();
-    }
-
-    @TargetApi(Build.VERSION_CODES.M)
-    private void generateKey() {
-        try {
-            keyStore = KeyStore.getInstance("AndroidKeyStore");
-            KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
-
-            keyStore.load(null);
-            keyGenerator.init(new
-                    KeyGenParameterSpec.Builder(AES.cryptKey,
-                    KeyProperties.PURPOSE_ENCRYPT |
-                            KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    .setUserAuthenticationRequired(true)
-                    .setEncryptionPaddings(
-                            KeyProperties.ENCRYPTION_PADDING_PKCS7)
-                    .build());
-            keyGenerator.generateKey();
-        } catch (KeyStoreException | IOException | CertificateException
-                | NoSuchAlgorithmException | InvalidAlgorithmParameterException
-                | NoSuchProviderException e) {
-            e.printStackTrace();
-        }
-
-    }
-
-    @TargetApi(Build.VERSION_CODES.M)
-    public boolean cipherInit() {
-        try {
-            cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/" + KeyProperties.ENCRYPTION_PADDING_PKCS7);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            throw new RuntimeException("Failed to get Cipher", e);
-        }
-        try {
-            keyStore.load(null);
-            SecretKey key = (SecretKey) keyStore.getKey(AES.cryptKey, null);
-            cipher.init(Cipher.ENCRYPT_MODE, key);
-            return true;
-        } catch (KeyPermanentlyInvalidatedException e) {
-            return false;
-        } catch (KeyStoreException | CertificateException | UnrecoverableKeyException | IOException | NoSuchAlgorithmException | InvalidKeyException e) {
-            throw new RuntimeException("Failed to init Cipher", e);
-        }
-
-    }
-
     private void SignIn(String email, String password){
         Utilities.showProgressDialog("Đang đăng nhập", SignIn.this);
         mAuth.signInWithEmailAndPassword(email, password)
@@ -216,6 +143,11 @@ public class SignIn extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         Utilities.dismissProgressDialog();
                         if(task.isSuccessful()) {
+                            SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
+                            SharedPreferences.Editor editor = pref.edit();
+                            editor.putString("email", edtEmail.getText().toString());
+                            editor.putString("password", aes.Encrypt(edtPassword.getText().toString()));
+                            editor.commit();
                             finish();
                             startActivity(new Intent(SignIn.this, HomePage.class));
                         } else {

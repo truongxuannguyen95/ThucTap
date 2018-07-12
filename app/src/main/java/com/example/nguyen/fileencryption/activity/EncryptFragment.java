@@ -147,6 +147,7 @@ public class EncryptFragment extends Fragment {
                 }
                 buffer.flush();
                 String fileData = aes.static_byteArrayToString(buffer.toByteArray());
+                fileData = "N14DCAT002" + fileData;
                 aes.setKey(HomePage.myKey);
                 fileData = aes.Encrypt(fileData);
                 String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();

@@ -143,6 +143,8 @@ public class ListViewFiles extends BaseAdapter {
                                 }
                             } catch (Exception e) {
                                 e.printStackTrace();
+                                Utilities.dismissProgressDialog();
+                                Utilities.showAlertDialog("Tải file thất bại", "Đã xảy ra lỗi trong quá trình tải file", myContext);
                             }
                         }
                     });

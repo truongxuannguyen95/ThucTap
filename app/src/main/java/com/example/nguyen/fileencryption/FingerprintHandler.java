@@ -1,12 +1,13 @@
 package com.example.nguyen.fileencryption;
 
-import android.app.Activity;
 import android.content.Context;
 import android.hardware.fingerprint.FingerprintManager;
 import android.os.Build;
 import android.os.CancellationSignal;
 import android.support.annotation.RequiresApi;
 import android.support.v4.content.ContextCompat;
+import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -48,16 +49,23 @@ public class FingerprintHandler extends FingerprintManager.AuthenticationCallbac
     }
 
     private void update(String s, boolean b) {
-        TextView tvReportFingerprint = SignIn.dialog.findViewById(R.id.tvReportFingerprint);
-        ImageView imgFingerprint = SignIn.dialog.findViewById(R.id.imgFingerprint);
+        TextView tvReportFingerprint = HomePage.dialog.findViewById(R.id.tvReportFingerprint);
+        ImageView imgFingerprint = HomePage.dialog.findViewById(R.id.imgFingerprint);
+        Button btnOK = HomePage.dialog.findViewById(R.id.btnOK);
         tvReportFingerprint.setText(s);
         if(b == false) {
             tvReportFingerprint.setTextColor(ContextCompat.getColor(myContext, R.color.colorAccent));
+            btnOK.setVisibility(View.GONE);
         } else {
             tvReportFingerprint.setTextColor(ContextCompat.getColor(myContext, R.color.colorPrimaryDark));
             imgFingerprint.setImageResource(R.mipmap.icon_done);
-            SignIn.dialog.dismiss();
+            btnOK.setVisibility(View.VISIBLE);
+            btnOK.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    HomePage.dialog.dismiss();
+                }
+            });
         }
-
     }
 }
