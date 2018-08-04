@@ -1,7 +1,6 @@
 package com.example.nguyen.fileencryption.activity;
 
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -14,7 +13,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
@@ -27,7 +25,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
 
 public class DecryptFragment extends Fragment {
 
@@ -74,7 +71,6 @@ public class DecryptFragment extends Fragment {
         btnDecrypt = view.findViewById(R.id.btnDecrypt);
         tvFileName = view.findViewById(R.id.tvFileName);
         aes = new AES();
-
         btnChooseFile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -129,7 +125,6 @@ public class DecryptFragment extends Fragment {
         private ProgressDialog progressDialog;
 
         protected void onPreExecute() {
-
             progressDialog = new ProgressDialog( getContext() );
             progressDialog.setIndeterminate( true );
             progressDialog.setCancelable(false);
@@ -142,7 +137,7 @@ public class DecryptFragment extends Fragment {
 
         @Override
         protected String doInBackground( String... params ) {
-            byte[] bytes = new byte[16384];
+            byte[] bytes = new byte[32768];
             int nRead;
             try {
                 InputStream is = getActivity().getContentResolver().openInputStream(uri);
@@ -151,18 +146,32 @@ public class DecryptFragment extends Fragment {
                     buffer.write(bytes, 0, nRead);
                 }
                 buffer.flush();
+                boolean hasKey = false;
+                String key = "";
                 String fileData = aes.static_byteArrayToString(buffer.toByteArray());
-                aes.setKey(HomePage.myKey);
-                fileData = aes.Decrypt(fileData);
-                String check = fileData.substring(0,10);
-                if(check.equals("N14DCAT002")) {
+                for(int i = 0; i < HomePage.listKeys.size(); i++) {
+                    key = HomePage.listKeys.get(i);
+                    aes.setKey(key);
+                    String check = fileData.substring(0, 16);
+                    check = aes.Decrypt(check);
+                    if(check.equals(key)) {
+                        aes.setKey(AES.cryptKey);
+                        hasKey = true;
+                        fileData = fileData.substring(16);
+                        key = aes.Decrypt(key);
+                        break;
+                    }
+                }
+                if(hasKey) {
+                    aes.setKey(key);
+                    fileData = aes.Decrypt(fileData);
                     String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
                     String rootPath = storagePath + "/Download/Cryptol";
                     File root = new File(rootPath);
                     root.mkdirs();
                     File file = new File(rootPath + "/" + fileNameDecrypt);
                     file.createNewFile();
-                    byte[] bytess = aes.static_stringToByteArray(fileData.substring(10));
+                    byte[] bytess = aes.static_stringToByteArray(fileData);
                     BufferedOutputStream bos = null;
                     bos = new BufferedOutputStream(new FileOutputStream(file, false));
                     bos.write(bytess);
@@ -198,7 +207,7 @@ public class DecryptFragment extends Fragment {
                 if(flag)
                     Utilities.showAlertDialog("Giải mã thành công", "File giải mã được lưu trong thư mục /Download/Cryptol", getContext());
                 else
-                    Utilities.showAlertDialog("Giải mã thất bại", "File này chưa được mã hóa hoặc dùng không đúng key", getContext());
+                    Utilities.showAlertDialog("Giải mã thất bại", "File này chưa được mã hóa bằng tài khoản đang sử dụng", getContext());
             }
         }
     }

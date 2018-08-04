@@ -3,11 +3,11 @@ package com.example.nguyen.fileencryption;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.v7.app.AlertDialog;
 
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +26,24 @@ public class Utilities {
 
     public static boolean isValidPassword(String pass) {
         return pass != null && pass.length() >= 6;
+    }
+
+    public static boolean isValidKey(String key){
+        String KEY_PATTERN = "[A-Za-z0-9]{16}";
+        Pattern pattern = Pattern.compile(KEY_PATTERN);
+        Matcher matcher = pattern.matcher(key);
+        return matcher.matches();
+    }
+
+    public static String rand(){
+        String saltChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        String key = "";
+        Random rand = new Random();
+        for(int i=0; i<16; i++) {
+            int index = rand.nextInt(36);
+            key += saltChars.charAt(index);
+        }
+        return key;
     }
 
     public static boolean isOnline(Context context){

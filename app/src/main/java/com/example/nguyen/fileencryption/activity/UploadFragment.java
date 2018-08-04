@@ -16,6 +16,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.example.nguyen.fileencryption.R;
@@ -73,8 +76,10 @@ public class UploadFragment extends Fragment {
         }
     }
 
-    private Button btnChooseFile, btnUpload;
+    private Button btnChooseFile, btnRandom, btnUpload;
+    private CheckBox ckbRandom;
     private TextView tvFileName;
+    private EditText edtKeyEncrypt;
     private Uri uri;
     private AES aes;
     private DatabaseReference mData;
@@ -84,11 +89,15 @@ public class UploadFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_upload, container, false);
+
         mData = FirebaseDatabase.getInstance().getReference();
-        btnChooseFile = view.findViewById(R.id.btnChooseFile);
-        btnUpload = view.findViewById(R.id.btnUpload);
         tvFileName = view.findViewById(R.id.tvFileName);
-        mData = FirebaseDatabase.getInstance().getReference();
+        edtKeyEncrypt = view.findViewById(R.id.edtKeyEncrypt);
+        btnChooseFile = view.findViewById(R.id.btnChooseFile);
+        btnRandom = view.findViewById(R.id.btnRandom);
+        btnUpload = view.findViewById(R.id.btnUpload);
+        ckbRandom = view.findViewById(R.id.ckbRandom);
+
         aes = new AES();
 
         btnChooseFile.setOnClickListener(new View.OnClickListener() {
@@ -103,18 +112,40 @@ public class UploadFragment extends Fragment {
             }
         });
 
+        ckbRandom.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    edtKeyEncrypt.setText(Utilities.rand());
+                    edtKeyEncrypt.setError(null);
+                    btnRandom.setVisibility(View.VISIBLE);
+                } else {
+                    btnRandom.setVisibility(View.GONE);
+                    edtKeyEncrypt.setText("");
+                }
+            }
+        });
+
+        btnRandom.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edtKeyEncrypt.setText(Utilities.rand());
+                edtKeyEncrypt.setError(null);
+            }
+        });
+
         btnUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (fileNameUpload.length() == 0) {
-                    Utilities.showAlertDialog("Thông báo", "Vui lòng chọn file để upload lên server", getContext());
-                } else {
-                    if(Utilities.isOnline(getContext()))
-                        new MyAsyncTask().execute();
-                    else
-                        Utilities.showAlertDialog("Thông báo", "Thiết bị của bạn chưa được kết nối internet\nVui lòng kết nối internet để sử dụng chức năng này", getContext());
+                    Utilities.showAlertDialog("Thông báo", "Vui lòng chọn file để upload", getContext());
+                } else if(!Utilities.isValidKey(edtKeyEncrypt.getText().toString())) {
+                    edtKeyEncrypt.setError("Key không được chứa ký tự đặc biệt và phải có đúng 16 ký tự");
+                } else if(Utilities.isOnline(getContext())) {
+                    new MyAsyncTask().execute();
+                } else
+                    Utilities.showAlertDialog("Thông báo", "Thiết bị của bạn chưa được kết nối internet\nVui lòng kết nối internet để sử dụng chức năng này", getContext());
                 }
-            }
         });
         return view;
     }
@@ -176,7 +207,7 @@ public class UploadFragment extends Fragment {
 
         @Override
         protected String doInBackground( String... params ) {
-            byte[] bytes = new byte[16384];
+            byte[] bytes = new byte[32768];
             int nRead;
             try {
                 InputStream is = getActivity().getContentResolver().openInputStream(uri);
@@ -186,15 +217,18 @@ public class UploadFragment extends Fragment {
                 }
                 buffer.flush();
                 String fileData = aes.static_byteArrayToString(buffer.toByteArray());
-                aes.setKey(HomePage.myKey);
+                String key = edtKeyEncrypt.getText().toString();
+                aes.setKey(AES.cryptKey);
+                String saveKey = aes.Encrypt(key);
+                aes.setKey(key);
                 fileData = aes.Encrypt(fileData);
                 FirebaseAuth mAuth = FirebaseAuth.getInstance();
                 FirebaseUser currentUser = mAuth.getCurrentUser();
                 final String owner = currentUser.getUid();
                 final DatabaseReference keyRef = mData.child("files_name").child(owner).push();
-                String key = keyRef.getKey();
-                final Files files = new Files(fileNameUpload, key);
-                mData.child("files_data").child(key).setValue(fileData)
+                String keyData = keyRef.getKey();
+                final Files files = new Files(fileNameUpload, saveKey, keyData);
+                mData.child("files_data").child(keyData).setValue(fileData)
                         .addOnSuccessListener(new OnSuccessListener<Void>() {
                             @Override
                             public void onSuccess(Void aVoid) {
@@ -229,7 +263,9 @@ public class UploadFragment extends Fragment {
         @Override
         public void onPostExecute( String result ) {
             tvFileName.setText("");
+            edtKeyEncrypt.setText("");
             fileNameUpload = "";
+            ckbRandom.setChecked(false);
             /*if ( progressDialog != null && progressDialog.isShowing() ) {
                 progressDialog.dismiss();
                 Utilities.showAlertDialog("Thông báo", "Upload file thành công", getContext());

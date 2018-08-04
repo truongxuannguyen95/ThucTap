@@ -29,6 +29,7 @@ public class SignUp extends AppCompatActivity {
     private EditText edtEmail, edtPassword, edtIdentify;
     private Button btnSignUp, btnCancel;
     private FirebaseAuth mAuth;
+    AES aes;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -40,6 +41,9 @@ public class SignUp extends AppCompatActivity {
         edtIdentify = findViewById(R.id.edtIdentify);
         btnSignUp = findViewById(R.id.btnSignup);
         btnCancel = findViewById(R.id.btnCancel);
+
+        aes = new AES();
+        aes.setKey(AES.cryptKey);
 
         btnSignUp.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -76,7 +80,7 @@ public class SignUp extends AppCompatActivity {
 
     private void SignUp(String email, String password){
         Utilities.showProgressDialog("Đang đăng ký", SignUp.this);
-        mAuth.createUserWithEmailAndPassword(email, password)
+        mAuth.createUserWithEmailAndPassword(email, aes.Encrypt(password))
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
@@ -85,7 +89,7 @@ public class SignUp extends AppCompatActivity {
                         {
                             FirebaseUser currentUser = mAuth.getCurrentUser();
                             DatabaseReference mData = FirebaseDatabase.getInstance().getReference();
-                            mData.child("user").child(currentUser.getUid()).setValue("");
+                            mData.child("users").child(currentUser.getUid()).setValue("");
                             showAlertDialog("Đăng ký thành công", "Bạn đã có thể tiến hành đăng nhập bằng tài khoản này", true);
                         }
                         else {

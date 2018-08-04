@@ -3,6 +3,7 @@ package com.example.nguyen.fileencryption.activity;
 import android.annotation.TargetApi;
 import android.app.Dialog;
 import android.app.KeyguardManager;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -16,12 +17,14 @@ import android.support.design.widget.TabLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -32,8 +35,6 @@ import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
 import com.example.nguyen.fileencryption.adapter.HomePager;
 import com.example.nguyen.fileencryption.model.AES;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -51,8 +52,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -67,25 +67,24 @@ CipherInit(): sẽ khởi tạo mật mã và sẽ được sử dụng để t�
 
 public class HomePage extends AppCompatActivity {
 
-    private Dialog dialogFingerprint, dialogInputKey;
+    private Dialog dialogFingerprint;
     private FingerprintManager fingerprintManager;
     private KeyguardManager keyguardManager;
-    private DatabaseReference mData;
-    private String userID;
-    private AES aes;
-    public static String myKey;
     private TextView tvReportFingerprint;
     private KeyStore keyStore;
     private Cipher cipher;
     public static Dialog dialog;
+    public static ArrayList<String> listKeys;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
 
-        aes = new AES();
-        aes.setKey(AES.cryptKey);
+        if(!Utilities.isOnline(HomePage.this))
+            showAlertDialog();
+        else
+            getKeys();
 
         SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
         Boolean check = pref.getBoolean("fingerprint", false);
@@ -93,31 +92,34 @@ public class HomePage extends AppCompatActivity {
             showDialogFingerprint();
         }
 
-        mData = FirebaseDatabase.getInstance().getReference();
+        showActionBar();
+    }
+
+    public void getKeys(){
+        listKeys = new ArrayList<>();
+        DatabaseReference mData = FirebaseDatabase.getInstance().getReference();
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         final FirebaseUser currentUser = mAuth.getCurrentUser();
-        userID = currentUser.getUid();
-        mData.child("user").child(userID).addListenerForSingleValueEvent(new ValueEventListener() {
+        String userID = currentUser.getUid();
+        mData.child("users").child(userID).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    myKey = dataSnapshot.getValue().toString();
-                    if(myKey.equals("")) {
-                        showDialogInputKey();
-                    } else {
-                        myKey = aes.Decrypt(myKey);
-                        showTab();
+                if(dataSnapshot.exists()){
+                    for(DataSnapshot data : dataSnapshot.getChildren()){
+                        String key = data.getValue().toString();
+                        listKeys.add(key);
                     }
+                    showTab();
+                } else {
+                    showTab();
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
-                Utilities.showAlertDialog("Thông báo", "Đã xảy ra lỗi trong quá trình kiểm tra dữ liệu\nVui lòng thử lại sau", HomePage.this);
+                Utilities.showAlertDialog("Thông báo", "Đã xảy ra lỗi trong quá trình kiểm tra dữ liệu. Vui lòng thử lại sau", HomePage.this);
             }
         });
-
-        showActionBar();
     }
 
     private void showTab(){
@@ -189,11 +191,31 @@ public class HomePage extends AppCompatActivity {
             SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
             SharedPreferences.Editor editor = pref.edit();
             editor.putString("password", "");
+            editor.putInt("length", 0);
             editor.commit();
             finish();
             startActivity(new Intent(HomePage.this, SignIn.class));
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void showAlertDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder( HomePage.this);
+        builder.setTitle("Lỗi kết nối");
+        builder.setMessage("Thiết bị của bạn chưa được kết nối internet. Vui lòng kiểm tra lại");
+        builder.setCancelable(false);
+        builder.setNegativeButton("Xác nhận", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+                if(!Utilities.isOnline(HomePage.this))
+                    showAlertDialog();
+                else
+                    getKeys();
+            }
+        });
+        final AlertDialog alertDialog = builder.create();
+        alertDialog.show();
     }
 
     public void showDialogManagerFingerprint(){
@@ -203,72 +225,63 @@ public class HomePage extends AppCompatActivity {
         dialogFingerprint.setCanceledOnTouchOutside(false);
         final Switch swFingerprint = dialogFingerprint.findViewById(R.id.swFingerprint);
         Button btnManagerFingerprint = dialogFingerprint.findViewById(R.id.btnManagerFingerprint);
+        Button btnCancel = dialogFingerprint.findViewById(R.id.btnCancel);
+        final TextView tvReport = dialogFingerprint.findViewById(R.id.tvReport);
+        final EditText edtCheckPwd = dialogFingerprint.findViewById(R.id.edtCheckPwd);
         final SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
         final Boolean check = pref.getBoolean("fingerprint", false);
+        tvReport.setVisibility(View.GONE);
+        edtCheckPwd.setVisibility(View.GONE);
         swFingerprint.setChecked(check);
+        swFingerprint.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                tvReport.setVisibility(View.GONE);
+                if(isChecked) {
+                    edtCheckPwd.setVisibility(View.GONE);
+                } else {
+                    if(check) {
+                        edtCheckPwd.setVisibility(View.VISIBLE);
+                        edtCheckPwd.setText("");
+                    }
+                }
+            }
+        });
         btnManagerFingerprint.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 SharedPreferences.Editor editor = pref.edit();
                 if(swFingerprint.isChecked()){
-                    editor.putBoolean("fingerprint", true);
-                    if(!check)
+                    if(!check) {
+                        editor.putBoolean("fingerprint", true);
                         Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được kích hoạt", Toast.LENGTH_SHORT).show();
+                    }
+                    dialogFingerprint.dismiss();
                 } else {
-                    editor.putBoolean("fingerprint", false);
-                    if(check)
-                        Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được hủy bỏ", Toast.LENGTH_SHORT).show();
+                    if(check) {
+                        if(edtCheckPwd.getText().toString().equals(SignIn.pwd)) {
+                            editor.putBoolean("fingerprint", false);
+                            dialogFingerprint.dismiss();
+                            Toast.makeText(getApplicationContext(), "Truy cập ứng dụng với dấu vân tay đã được hủy bỏ", Toast.LENGTH_SHORT).show();
+                        } else{
+                            tvReport.setVisibility(View.VISIBLE);
+                            if(edtCheckPwd.getText().toString().equals(""))
+                                tvReport.setText("Vui lòng nhập mật khẩu để hủy bỏ");
+                            else
+                                tvReport.setText("Mật khẩu không đúng");
+                        }
+                    }
                 }
                 editor.commit();
+            }
+        });
+        btnCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
                 dialogFingerprint.dismiss();
             }
         });
         dialogFingerprint.show();
-    }
-
-    public void showDialogInputKey(){
-        dialogInputKey = new Dialog(HomePage.this);
-        dialogInputKey.setContentView(R.layout.dialog_input_key);
-        dialogInputKey.setCancelable(false);
-        dialogInputKey.setCanceledOnTouchOutside(false);
-        final EditText edtKey = dialogInputKey.findViewById(R.id.edtKey);
-        Button btnInputKey = dialogInputKey.findViewById(R.id.btnInputKey);
-        btnInputKey.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(!isValidKey(edtKey.getText().toString())) {
-                    edtKey.setError("Key không được chứa ký tự đặc biệt và phải có đúng 16 ký tự");
-                } else {
-                    myKey = edtKey.getText().toString();
-                    mData.child("user").child(userID).setValue(aes.Encrypt(myKey))
-                            .addOnSuccessListener(new OnSuccessListener<Void>() {
-                                @Override
-                                public void onSuccess(Void aVoid) {
-                                    dialogInputKey.dismiss();
-                                    showTab();
-                                    Utilities.showAlertDialog("Tạo key thành công", "Bạn đã có thể sử dụng các tính năng của ứng dụng", HomePage.this);
-                                }
-                            })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    dialogInputKey.dismiss();
-                                    showTab();
-                                    Utilities.showAlertDialog("Tạo key thất bại", "Đã xảy ra lỗi trong quá trình tạo key", HomePage.this);
-                                }
-                            });
-
-                }
-            }
-        });
-        dialogInputKey.show();
-    }
-
-    public boolean isValidKey(String key){
-        String KEY_PATTERN = "[A-Za-z0-9]{16}";
-        Pattern pattern = Pattern.compile(KEY_PATTERN);
-        Matcher matcher = pattern.matcher(key);
-        return matcher.matches();
     }
 
     public void showDialogFingerprint(){

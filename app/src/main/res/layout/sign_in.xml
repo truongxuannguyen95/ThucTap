@@ -27,7 +27,7 @@
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="0dp"
-            android:layout_weight="4"
+            android:layout_weight="3"
             android:scaleType="fitCenter"
             android:src="@drawable/icon_security"
             android:layout_gravity="center" />
@@ -58,6 +58,17 @@
             android:layout_marginTop="10dp"
             android:singleLine="true"
             android:background="@drawable/edtpw" />
+        <CheckBox
+            android:id="@+id/ckbRemember"
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:text="Ghi nhớ tài khoản và tự động đăng nhập"
+            android:checked="false"
+            android:textSize="16sp"
+            android:textColor="#ffffff"
+            android:buttonTint="#ffffff"
+            android:layout_marginLeft="4dp"/>
         <Button
             android:id="@+id/btnSignIn"
             android:text="ĐĂNG NHẬP"

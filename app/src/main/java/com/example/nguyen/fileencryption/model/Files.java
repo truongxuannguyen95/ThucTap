@@ -1,13 +1,14 @@
 package com.example.nguyen.fileencryption.model;
 
 public class Files {
-    private String name, key;
+    private String name, key, keyData;
 
     public Files(){}
 
-    public Files(String name, String key) {
+    public Files(String name, String key, String keyData) {
         this.name = name;
         this.key = key;
+        this.keyData = keyData;
     }
 
 
@@ -25,5 +26,13 @@ public class Files {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public String getKeyData() {
+        return keyData;
+    }
+
+    public void setKeyData(String keyData) {
+        this.keyData = keyData;
     }
 }

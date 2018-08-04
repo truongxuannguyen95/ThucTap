@@ -9,26 +9,34 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:layout_marginLeft="10dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Chọn file để giải mã"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"/>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:padding="5dp"
-            android:gravity="center">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:layout_marginLeft="10dp">
             <TextView
                 android:id="@+id/tvFileName"
-                android:layout_width="250dp"
+                android:layout_width="285dp"
                 android:layout_height="35dp"
-                android:text="Chưa có file nào được chọn..."
+                android:hint="Chưa có file nào được chọn..."
                 android:textSize="16sp"
-                android:textColor="#bcb3b3"
-                android:gravity="left"
+                android:textColor="#282525"
                 android:padding="5dp"
                 android:background="@drawable/corners"/>
             <Button
                 android:id="@+id/btnChooseFile"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="@drawable/icon_search"
                 android:layout_marginLeft="10dp"/>
         </LinearLayout>
@@ -40,16 +48,22 @@
             android:textColor="#fff"
             android:textSize="20sp"
             android:layout_gravity="center"
+            android:layout_marginTop="30dp"
             android:background="@drawable/btn_cyan"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="16sp"
-            android:textColor="#0b0be4"
-            android:layout_marginTop="50dp"
-            android:text="File giải mã xong sẽ được lưu trong thư mục\n/Download/Cryptol"/>
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#df4760"
+            android:layout_marginTop="20dp"
+            android:text="Lưu ý:"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textColor="#4790df"
+            android:text="Nếu tài khoản của bạn đang dùng chưa từng mã hóa file này. Quá trình giải mã sẽ không thành công!"/>
     </LinearLayout>
-
 </FrameLayout>

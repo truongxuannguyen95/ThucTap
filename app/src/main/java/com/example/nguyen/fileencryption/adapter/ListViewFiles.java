@@ -96,7 +96,8 @@ public class ListViewFiles extends BaseAdapter {
                         public void onClick(DialogInterface dialogInterface, int i) {
                             dialogInterface.dismiss();
                             final AES aes = new AES();
-                            aes.setKey(HomePage.myKey);
+                            aes.setKey(AES.cryptKey);
+                            aes.setKey(aes.Decrypt(listFiles.get(position).getKey()));
                             String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
                             String rootPath = storagePath + "/Download";
                             String fileName = "/" + listFiles.get(position).getName();
@@ -109,7 +110,7 @@ public class ListViewFiles extends BaseAdapter {
                                 if (permissionCheck == PackageManager.PERMISSION_GRANTED) {
                                     Utilities.showProgressDialog("Đang tải file và giải mã", myContext);
                                     file.createNewFile();
-                                    mData.child("files_data").child(listFiles.get(position).getKey()).addListenerForSingleValueEvent(new ValueEventListener() {
+                                    mData.child("files_data").child(listFiles.get(position).getKeyData()).addListenerForSingleValueEvent(new ValueEventListener() {
                                         @Override
                                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                             if (dataSnapshot.exists()) {
@@ -179,9 +180,11 @@ public class ListViewFiles extends BaseAdapter {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         if(Utilities.isOnline(myContext)) {
+                            mData.child("files_name").child(owner).child(listFiles.get(position).getKeyData()).removeValue();
+                            mData.child("files_data").child(listFiles.get(position).getKeyData()).removeValue();
+                            listFiles.remove(position);
                             dialogInterface.dismiss();
-                            mData.child("files_name").child(owner).child(listFiles.get(position).getKey()).removeValue();
-                            mData.child("files_data").child(listFiles.get(position).getKey()).removeValue();
+                            notifyDataSetChanged();
                         } else {
                             Utilities.showAlertDialog("Xóa thất bại", "Thiết bị của bạn chưa được kết nối internet", myContext);
                         }

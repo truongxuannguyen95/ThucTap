@@ -20,6 +20,8 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -51,8 +53,10 @@ public class SignIn extends AppCompatActivity {
 
     private EditText edtEmail, edtPassword;
     private Button btnSignIn, btnSignUp, btnForgetPw;
+    private CheckBox ckbRemember;
     private FirebaseAuth mAuth;
     private AES aes;
+    public static String pwd;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -64,20 +68,41 @@ public class SignIn extends AppCompatActivity {
         btnSignIn = findViewById(R.id.btnSignIn);
         btnSignUp = findViewById(R.id.btnSignUp);
         btnForgetPw = findViewById(R.id.btnForgetPw);
+        ckbRemember = findViewById(R.id.ckbRemember);
 
         aes = new AES();
         aes.setKey(AES.cryptKey);
 
-        SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
+        final SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
         String email = pref.getString("email", "");
         String password = pref.getString("password", "");
-        if(email.length() > 1 && password.length() > 1) {
-            edtEmail.setText(email);
-            edtPassword.setText(aes.Decrypt(password));
-            SignIn(email, aes.Decrypt(password));
-        } else if(email.length() > 1) {
-            edtEmail.setText(email);
+        Boolean remember = pref.getBoolean("remember", false);
+        int length = pref.getInt("length", 0);
+
+        ckbRemember.setChecked(remember);
+
+        if(ckbRemember.isChecked()) {
+            if(email.length() > 1 && password.length() > 1) {
+                edtEmail.setText(email);
+                edtPassword.setText(aes.Decrypt(password).substring(0,length));
+                SignIn(email, aes.Decrypt(password));
+            } else if(email.length() > 1) {
+                edtEmail.setText(email);
+            }
         }
+
+        ckbRemember.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                SharedPreferences.Editor editor = pref.edit();
+                if(isChecked) {
+                    editor.putBoolean("remember", true);
+                } else {
+                    editor.putBoolean("remember", false);
+                }
+                editor.commit();
+            }
+        });
 
         getPermissions();
 
@@ -135,18 +160,25 @@ public class SignIn extends AppCompatActivity {
         });
     }
 
-    private void SignIn(String email, String password){
+    private void SignIn(String email, final String password){
         Utilities.showProgressDialog("Đang đăng nhập", SignIn.this);
-        mAuth.signInWithEmailAndPassword(email, password)
+        mAuth.signInWithEmailAndPassword(email, aes.Encrypt(password))
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         Utilities.dismissProgressDialog();
                         if(task.isSuccessful()) {
+                            pwd = edtPassword.getText().toString();
                             SharedPreferences pref = getSharedPreferences("sharedSettings", 0);
                             SharedPreferences.Editor editor = pref.edit();
                             editor.putString("email", edtEmail.getText().toString());
-                            editor.putString("password", aes.Encrypt(edtPassword.getText().toString()));
+                            if(ckbRemember.isChecked()) {
+                                editor.putString("password", aes.Encrypt(pwd));
+                                editor.putInt("length", pwd.length());
+                            } else {
+                                editor.putString("password", "");
+                                editor.putInt("length", 0);
+                            }
                             editor.commit();
                             finish();
                             startActivity(new Intent(SignIn.this, HomePage.class));

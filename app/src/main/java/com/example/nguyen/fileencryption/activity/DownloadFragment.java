@@ -14,7 +14,6 @@ import android.widget.TextView;
 import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
 import com.example.nguyen.fileencryption.adapter.ListViewFiles;
-import com.example.nguyen.fileencryption.model.AES;
 import com.example.nguyen.fileencryption.model.Files;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -106,7 +105,8 @@ public class DownloadFragment extends Fragment {
                     for(DataSnapshot data : dataSnapshot.getChildren()){
                         String key = data.child("key").getValue().toString();
                         String name = data.child("name").getValue().toString();
-                        listFiles.add(new Files(name, key));
+                        String keyData = data.child("keyData").getValue().toString();
+                        listFiles.add(new Files(name, key, keyData));
                         listViewFiles.notifyDataSetChanged();
                         tvEmpty.setVisibility(View.GONE);
                         lvFiles.setVisibility(View.VISIBLE);

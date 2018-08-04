@@ -1,7 +1,6 @@
 package com.example.nguyen.fileencryption.activity;
 
 import android.app.ProgressDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -13,11 +12,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.example.nguyen.fileencryption.R;
 import com.example.nguyen.fileencryption.Utilities;
 import com.example.nguyen.fileencryption.model.AES;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -49,8 +55,10 @@ public class EncryptFragment extends Fragment {
         return fragment;
     }
 
-    private Button btnChooseFile, btnEncrypt;
+    private Button btnChooseFile, btnRandom, btnEncrypt;
+    private CheckBox ckbRandom;
     private TextView tvFileName;
+    private EditText edtKeyEncrypt;
     private Uri uri;
     private AES aes;
     private String fileNameEncrypt = "";
@@ -68,9 +76,13 @@ public class EncryptFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_encrypt, container, false);
-        btnChooseFile = view.findViewById(R.id.btnChooseFile);
-        btnEncrypt = view.findViewById(R.id.btnEncrypt);
         tvFileName = view.findViewById(R.id.tvFileName);
+        edtKeyEncrypt = view.findViewById(R.id.edtKeyEncrypt);
+        btnChooseFile = view.findViewById(R.id.btnChooseFile);
+        btnRandom = view.findViewById(R.id.btnRandom);
+        btnEncrypt = view.findViewById(R.id.btnEncrypt);
+        ckbRandom = view.findViewById(R.id.ckbRandom);
+
         aes = new AES();
 
         btnChooseFile.setOnClickListener(new View.OnClickListener() {
@@ -85,15 +97,39 @@ public class EncryptFragment extends Fragment {
             }
         });
 
+        ckbRandom.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    edtKeyEncrypt.setText(Utilities.rand());
+                    edtKeyEncrypt.setError(null);
+                    btnRandom.setVisibility(View.VISIBLE);
+                } else {
+                    btnRandom.setVisibility(View.GONE);
+                    edtKeyEncrypt.setText("");
+                }
+            }
+        });
+
+        btnRandom.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edtKeyEncrypt.setText(Utilities.rand());
+                edtKeyEncrypt.setError(null);
+            }
+        });
+
         btnEncrypt.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (fileNameEncrypt.length() == 0) {
                     Utilities.showAlertDialog("Thông báo", "Vui lòng chọn file để mã hóa", getContext());
+                } else if(!Utilities.isValidKey(edtKeyEncrypt.getText().toString())) {
+                    edtKeyEncrypt.setError("Key không được chứa ký tự đặc biệt và phải có đúng 16 ký tự");
                 } else if(Utilities.isOnline(getContext())){
                     new MyAsyncTask().execute();
                 } else {
-                    Utilities.showAlertDialog("Thông báo", "Thiết bị của bạn chưa được kết nối internet\nVui lòng kết nối internet để sử dụng chức năng này", getContext());
+                    Utilities.showAlertDialog("Thông báo", "Thiết bị của bạn chưa được kết nối internet\nVui lòng kiểm tra kết nối internet", getContext());
                 }
             }
         });
@@ -137,7 +173,11 @@ public class EncryptFragment extends Fragment {
 
         @Override
         protected String doInBackground( String... params ) {
-            byte[] bytes = new byte[16384];
+            FirebaseAuth mAuth = FirebaseAuth.getInstance();
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            String owner = currentUser.getUid();
+            DatabaseReference mData = FirebaseDatabase.getInstance().getReference();
+            byte[] bytes = new byte[32768];
             int nRead;
             try {
                 InputStream is = getActivity().getContentResolver().openInputStream(uri);
@@ -146,9 +186,14 @@ public class EncryptFragment extends Fragment {
                     buffer.write(bytes, 0, nRead);
                 }
                 buffer.flush();
+                String key = edtKeyEncrypt.getText().toString();
+                aes.setKey(AES.cryptKey);
+                String stKey = aes.Encrypt(key);
+                aes.setKey(stKey);
+                String ndKey = aes.Encrypt(stKey);
+                HomePage.listKeys.add(stKey);
+                aes.setKey(key);
                 String fileData = aes.static_byteArrayToString(buffer.toByteArray());
-                fileData = "N14DCAT002" + fileData;
-                aes.setKey(HomePage.myKey);
                 fileData = aes.Encrypt(fileData);
                 String storagePath = Environment.getExternalStorageDirectory().getAbsolutePath();
                 String rootPath = storagePath + "/Download/Cryptol";
@@ -156,7 +201,8 @@ public class EncryptFragment extends Fragment {
                 root.mkdirs();
                 File file = new File(rootPath + "/" + fileNameEncrypt);
                 file.createNewFile();
-                byte[] bytess = aes.static_stringToByteArray(fileData);
+                mData.child("users").child(owner).push().setValue(stKey);
+                byte[] bytess = aes.static_stringToByteArray(ndKey + fileData);
                 BufferedOutputStream bos = null;
                 bos = new BufferedOutputStream(new FileOutputStream(file, false));
                 bos.write(bytess);
@@ -182,7 +228,9 @@ public class EncryptFragment extends Fragment {
         public void onPostExecute( String result ) {
 
             tvFileName.setText("");
+            edtKeyEncrypt.setText("");
             fileNameEncrypt = "";
+            ckbRandom.setChecked(false);
             if ( progressDialog != null && progressDialog.isShowing() ) {
                 progressDialog.dismiss();
                 Utilities.showAlertDialog("Mã hóa thành công", "File mã hóa được lưu trong thư mục /Download/Cryptol", getContext());

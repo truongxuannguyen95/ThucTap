@@ -9,29 +9,80 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:layout_marginLeft="10dp">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Chọn file để mã hóa"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"/>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:padding="5dp"
-            android:gravity="center">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:layout_marginLeft="10dp">
             <TextView
                 android:id="@+id/tvFileName"
-                android:layout_width="250dp"
+                android:layout_width="285dp"
                 android:layout_height="35dp"
-                android:text="Chưa có file nào được chọn..."
+                android:hint="Chưa có file nào được chọn..."
                 android:textSize="16sp"
-                android:textColor="#bcb3b3"
-                android:gravity="left"
+                android:textColor="#282525"
                 android:padding="5dp"
                 android:background="@drawable/corners"/>
             <Button
                 android:id="@+id/btnChooseFile"
-                android:layout_width="35dp"
-                android:layout_height="35dp"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:background="@drawable/icon_search"
                 android:layout_marginLeft="10dp"/>
         </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nhập key để mã hóa dữ liệu"
+            android:textColor="#000000"
+            android:textSize="18sp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="20dp"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:layout_marginLeft="10dp">
+            <EditText
+                android:id="@+id/edtKeyEncrypt"
+                android:layout_width="285dp"
+                android:layout_height="35dp"
+                android:hint="Nhập key tại đây (key phải có 16 ký tự)"
+                android:singleLine="true"
+                android:textColorHint="#bcb3b3"
+                android:textSize="16sp"
+                android:maxLength="16"
+                android:textColor="#000000"
+                android:padding="5dp"
+                android:layout_marginTop="3dp"
+                android:background="@drawable/corners_edt"/>
+            <Button
+                android:id="@+id/btnRandom"
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                android:background="@drawable/icon_random"
+                android:layout_marginLeft="10dp"
+                android:visibility="gone"/>
+        </LinearLayout>
+        <CheckBox
+            android:id="@+id/ckbRandom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Tự động tạo key"
+            android:checked="false"
+            android:textSize="16sp"
+            android:textColor="#474adf"
+            android:layout_marginLeft="4dp"/>
         <Button
             android:id="@+id/btnEncrypt"
             android:layout_width="150dp"
@@ -40,16 +91,8 @@
             android:textColor="#fff"
             android:textSize="20sp"
             android:layout_gravity="center"
+            android:layout_marginTop="20dp"
             android:background="@drawable/btn_red"/>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="16sp"
-            android:textColor="#0b0be4"
-            android:layout_marginTop="50dp"
-            android:text="File mã hóa xong sẽ được lưu trong thư mục\n/Download/Cryptol"/>
     </LinearLayout>
 
 </FrameLayout>
