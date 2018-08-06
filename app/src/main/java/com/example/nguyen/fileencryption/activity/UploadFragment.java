@@ -235,6 +235,9 @@ public class UploadFragment extends Fragment {
                                 keyRef.setValue(files);
                                 progressDialog.dismiss();
                                 Utilities.showAlertDialog("Thông báo", "Upload file thành công", getContext());
+                                tvFileName.setText("");
+                                edtKeyEncrypt.setText("");
+                                fileNameUpload = "";
                             }
                         })
                         .addOnFailureListener(new OnFailureListener() {
@@ -262,9 +265,6 @@ public class UploadFragment extends Fragment {
 
         @Override
         public void onPostExecute( String result ) {
-            tvFileName.setText("");
-            edtKeyEncrypt.setText("");
-            fileNameUpload = "";
             ckbRandom.setChecked(false);
             /*if ( progressDialog != null && progressDialog.isShowing() ) {
                 progressDialog.dismiss();

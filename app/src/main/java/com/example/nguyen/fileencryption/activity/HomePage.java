@@ -26,6 +26,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -71,6 +72,7 @@ public class HomePage extends AppCompatActivity {
     private FingerprintManager fingerprintManager;
     private KeyguardManager keyguardManager;
     private TextView tvReportFingerprint;
+    private LinearLayout linearLoad;
     private KeyStore keyStore;
     private Cipher cipher;
     public static Dialog dialog;
@@ -80,7 +82,7 @@ public class HomePage extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.homepage);
-
+        linearLoad = findViewById(R.id.linearLoad);
         if(!Utilities.isOnline(HomePage.this))
             showAlertDialog();
         else
@@ -123,6 +125,7 @@ public class HomePage extends AppCompatActivity {
     }
 
     private void showTab(){
+        linearLoad.setVisibility(View.GONE);
         TabLayout tabLayout = findViewById(R.id.tabLayout);
         tabLayout.addTab(tabLayout.newTab().setText(" Mã hóa "));
         tabLayout.addTab(tabLayout.newTab().setText(" Giải mã "));

@@ -85,7 +85,7 @@ public class SignIn extends AppCompatActivity {
             if(email.length() > 1 && password.length() > 1) {
                 edtEmail.setText(email);
                 edtPassword.setText(aes.Decrypt(password).substring(0,length));
-                SignIn(email, aes.Decrypt(password));
+                SignIn(email, edtPassword.getText().toString());
             } else if(email.length() > 1) {
                 edtEmail.setText(email);
             }
@@ -162,7 +162,7 @@ public class SignIn extends AppCompatActivity {
 
     private void SignIn(String email, final String password){
         Utilities.showProgressDialog("Đang đăng nhập", SignIn.this);
-        mAuth.signInWithEmailAndPassword(email, aes.Encrypt(password))
+        mAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
                     @Override
                     public void onComplete(@NonNull Task<AuthResult> task) {

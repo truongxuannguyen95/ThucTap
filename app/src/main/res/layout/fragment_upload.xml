@@ -87,7 +87,7 @@
             android:id="@+id/btnUpload"
             android:layout_width="150dp"
             android:layout_height="wrap_content"
-            android:text="Mã hóa"
+            android:text="Upload"
             android:textColor="#fff"
             android:textSize="20sp"
             android:layout_gravity="center"

@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <activity android:name=".activity.SignUp" android:theme="@style/User">
+        <activity android:name=".activity.SignUp" android:theme="@style/User" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
@@ -26,7 +26,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activity.SignIn" android:theme="@style/User">
+        <activity android:name=".activity.SignIn" android:theme="@style/User" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -36,7 +36,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activity.ChangePassword" android:theme="@style/User">
+        <activity android:name=".activity.ChangePassword" android:theme="@style/User" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
@@ -46,22 +46,11 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activity.HomePage">
+        <activity android:name=".activity.HomePage" android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
                 <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <activity android:name=".activity.Fingerprint"
-            android:parentActivityName=".activity.HomePage">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <key android:mimeType="text/plain" />
             </intent-filter>
         </activity>
 

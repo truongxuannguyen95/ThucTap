@@ -68,12 +68,12 @@ public class ChangePassword extends AppCompatActivity {
                     edtIdentify.setError("Mật khẩu xác thực không khớp");
                 else {
                     final FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                    currentUser.reauthenticate(EmailAuthProvider.getCredential(currentUser.getEmail(), aes.Encrypt(oldPw))).addOnCompleteListener(new OnCompleteListener<Void>() {
+                    currentUser.reauthenticate(EmailAuthProvider.getCredential(currentUser.getEmail(), oldPw)).addOnCompleteListener(new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
                             if (task.isSuccessful()) {
                                 Utilities.showProgressDialog("Đang đổi mật khẩu", ChangePassword.this);
-                                currentUser.updatePassword(aes.Encrypt(newPw)).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                currentUser.updatePassword(newPw).addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         Utilities.dismissProgressDialog();
