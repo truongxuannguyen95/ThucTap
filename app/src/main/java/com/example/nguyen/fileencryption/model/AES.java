@@ -1,25 +1,13 @@
 package com.example.nguyen.fileencryption.model;
 
 public class AES {
-    /*String cryptKey = "aPb4x9q0H4W8rPs7";
-    String data = "hello world      ";
-    aes = new AES();
-    aes.setKeyOrBytes(cryptKey);
-    data = aes.Encrypt(data);
-    data = aes.Decrypt(data);*/
+
     public static String cryptKey = "TruongXuanNguyen";
 
-    public static final int
-            ROUNDS = 14,        // AES has 10-14 rounds
-            BLOCK_SIZE = 16,    // AES uses 128-bit (16 byte) key
-            KEY_LENGTH = 32;    // AES uses 128/192/256-bit (16/24/32 byte) key
-
+    public static final int BLOCK_SIZE = 16;    // AES sử dụng 128-bit (16 byte) key
     int numRounds;
-    /** encryption round keys derived from AES key set on this instance. */
     byte[][] Ke;
-    /** decryption round keys derived from AES key set on this instance. */
     byte[][] Kd;
-
 
     static final byte[] S = {
             99, 124, 119, 123, -14, 107, 111, -59, 48, 1, 103, 43, -2, -41, -85, 118,
@@ -39,11 +27,6 @@ public class AES {
             -31, -8, -104, 17, 105, -39, -114, -108, -101, 30, -121, -23, -50, 85, 40, -33,
             -116, -95, -119, 13, -65, -26, 66, 104, 65, -103, 45, 15, -80, 84, -69, 22 };
 
-    /** AES decryption S-box.
-     *  <p>See FIPS-197 section 5.1.1 or Stallings section 5.2.
-     *  Note that hex values have been converted to decimal for easy table
-     *  specification in Java.
-     */
     static final byte[] Si = {
             82, 9, 106, -43, 48, 54, -91, 56, -65, 64, -93, -98, -127, -13, -41, -5,
             124, -29, 57, -126, -101, 47, -1, -121, 52, -114, 67, 68, -60, -34, -23, -53,
@@ -62,11 +45,6 @@ public class AES {
             -96, -32, 59, 77, -82, 42, -11, -80, -56, -21, -69, 60, -125, 83, -103, 97,
             23, 43, 4, 126, -70, 119, -42, 38, -31, 105, 20, 99, 85, 33, 12, 125 };
 
-    /** AES key schedule round constant table.
-     *  <p>See FIPS-197 section 5.1.1 or Stallings section 5.2.
-     *  Note that hex values have been converted to decimal for easy table
-     *  specification in Java, and that indexes start at 1, hence initial 0 entry.
-     */
     static final byte[] rcon = {
             0,
             1, 2, 4, 8, 16, 32,
@@ -75,26 +53,19 @@ public class AES {
             99, -58, -105, 53, 106, -44,
             -77, 125, -6, -17, -59, -111 };
 
-    /** Internal AES constants and variables. */
     public static final int
-            COL_SIZE = 4,                // depth of each column in AES state variable
-            NUM_COLS = BLOCK_SIZE / COL_SIZE,    // number of columns in AES state variable
-            ROOT = 0x11B;                // generator polynomial used in GF(2^8)
+        COL_SIZE = 4,
+        NUM_COLS = BLOCK_SIZE / COL_SIZE,
+        ROOT = 0x11B;
 
-    /** define ShiftRows transformation as shift amount for each row in state. */
     static final int[] row_shift = {0, 1, 2, 3};
 
-    /* alog table for field GF(2^m) used to speed up multiplications. */
     static final int[] alog = new int[256];
-    /* log table for field GF(2^m) used to speed up multiplications. */
     static final int[] log =  new int[256];
 
-    /** static code to initialise the log and alog tables.
-     *  Used to implement multiplication in GF(2^8).
-     */
     static {
         int i, j;
-        // produce log and alog tables, needed for multiplying in the field GF(2^8)
+        //Tạo bảng log và alog, cần thiết để nhân trong trường GF(2^8)
         alog[0] = 1;
         for (i = 1; i < 256; i++) {
             j = (alog[i-1] << 1) ^ alog[i-1];
@@ -104,18 +75,12 @@ public class AES {
         for (i = 1; i < 255; i++) log[alog[i]] = i;
     }
 
-    /** Construct AES object. */
     public AES() {
     }
 
-    /** return number of rounds for a given AES key size.
-     *
-     * @param keySize    size of the user key material in bytes.
-     * @return        number of rounds for a given AES key size.
-     */
     public static int getRounds (int keySize) {
         switch (keySize) {
-            case 16:    // 16 byte = 128 bit key
+            case 16:    // 16 byte = 128 bit key, ứng dụng này sử dụng key size = 16
                 return 10;
             case 24:    // 24 byte = 192 bit key
                 return 12;
@@ -124,145 +89,106 @@ public class AES {
         }
     }
 
-    /** multiply two elements of GF(2^8).
-     *  <p>Using pre-computed log and alog tables for speed.
-     *
-     *  @param a 1st value to multiply
-     *  @param b 2nd value to multiply
-     *  @return product of a * b module its generator polynomial
-     */
     static final int mul (int a, int b) {
         return (a != 0 && b != 0) ?
                 alog[(log[a & 0xFF] + log[b & 0xFF]) % 255] :
                 0;
     }
 
-    //......................................................................
-    /**
-     * AES encrypt 128-bit plaintext using key previously set.
-     *
-     * <p>Follows cipher specification given in FIPS-197 section 5.1
-     * See pseudo code in Fig 5, and details in this section.
-     *
-     * @param plain the 128-bit plaintext value to encrypt.
-     * @return the encrypted 128-bit ciphertext value.
-     */
     public byte[] encrypt(byte[] plain) {
-        // define working variables
-        byte [] a = new byte[BLOCK_SIZE];    // AES state variable
-        byte [] ta = new byte[BLOCK_SIZE];    // AES temp state variable
-        byte [] Ker;                // encrypt keys for current round
+        byte [] a = new byte[BLOCK_SIZE];    // AES state
+        byte [] ta = new byte[BLOCK_SIZE];    // AES temp state
+        byte [] Ker;                // key mã hóa vòng hiện tại
         int    i, j, k, row, col;
 
-        // check for bad arguments
         if (plain == null)
             throw new IllegalArgumentException("Empty plaintext");
         if (plain.length != BLOCK_SIZE)
             throw new IllegalArgumentException("Incorrect plaintext length");
 
-        // copy plaintext bytes into state and do initial AddRoundKey(state)
+        // copy plaitext bytes vào state và khởi tạo AddRoundKey(state)
         Ker = Ke[0];
         for (i = 0; i < BLOCK_SIZE; i++)    a[i] = (byte)(plain[i] ^ Ker[i]);
 
-        // for each round except last, apply round transforms
         for (int r = 1; r < numRounds; r++) {
-            Ker = Ke[r];            // get session keys for this round
-            // SubBytes(state) into ta using S-Box S
+            Ker = Ke[r];            // lấy session keys cho vòng thứ r
+            // SubBytes sử dụng S-Boxx
             for (i = 0; i < BLOCK_SIZE; i++) ta[i] = S[a[i] & 0xFF];
 
-            // ShiftRows(state) into a
+            // ShiftRows
             for (i = 0; i < BLOCK_SIZE; i++) {
                 row = i % COL_SIZE;
-                k = (i + (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;    // get shifted byte index
+                k = (i + (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;    // lấy index byte đã dịch
                 a[i] = ta[k];
             }
 
-            // MixColumns(state) into ta
-            //   implemented by expanding matrix mult for each column
-            //   see FIPS-197 section 5.1.3
+            // MixColumns
             for (col = 0; col < NUM_COLS; col++) {
-                i = col * COL_SIZE;        // start index for this col
+                i = col * COL_SIZE;
                 ta[i]   = (byte)(mul(2,a[i]) ^ mul(3,a[i+1]) ^ a[i+2] ^ a[i+3]);
                 ta[i+1] = (byte)(a[i] ^ mul(2,a[i+1]) ^ mul(3,a[i+2]) ^ a[i+3]);
                 ta[i+2] = (byte)(a[i] ^ a[i+1] ^ mul(2,a[i+2]) ^ mul(3,a[i+3]));
                 ta[i+3] = (byte)(mul(3,a[i]) ^ a[i+1] ^ a[i+2] ^ mul(2,a[i+3]));
             }
 
-            // AddRoundKey(state) into a
+            // AddRoundKey
             for (i = 0; i < BLOCK_SIZE; i++)    a[i] = (byte)(ta[i] ^ Ker[i]);
 
         }
 
-        // last round is special - only has SubBytes, ShiftRows and AddRoundKey
-        Ker = Ke[numRounds];            // get session keys for final round
+        // Vòng cuối chỉ dùng SubBytes, ShiftRows and AddRoundKey
+        Ker = Ke[numRounds];            // lấy session keys cho vòng cuối
 
-        // SubBytes(state) into a using S-Box S
+        // SubBytes
         for (i = 0; i < BLOCK_SIZE; i++) a[i] = S[a[i] & 0xFF];
 
-        // ShiftRows(state) into ta
+        // ShiftRows
         for (i = 0; i < BLOCK_SIZE; i++) {
             row = i % COL_SIZE;
-            k = (i + (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;    // get shifted byte index
+            k = (i + (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;    // lấy byte index đã dịch
             ta[i] = a[k];
         }
 
-        // AddRoundKey(state) into a
+        // AddRoundKey
         for (i = 0; i < BLOCK_SIZE; i++)    a[i] = (byte)(ta[i] ^ Ker[i]);
 
         return (a);
     }
 
-
-    //......................................................................
-    /**
-     * AES decrypt 128-bit ciphertext using key previously set.
-     *
-     * <p>Follows cipher specification given in FIPS-197 section 5.3
-     * See pseudo code in Fig 5, and details in this section.
-     *
-     * @param cipher the 128-bit ciphertext value to decrypt.
-     * @return the decrypted 128-bit plaintext value.
-     */
     public byte[] decrypt(byte[] cipher) {
-        // define working variables
-        byte [] a = new byte[BLOCK_SIZE];    // AES state variable
-        byte [] ta = new byte[BLOCK_SIZE];    // AES temp state variable
-        byte [] Kdr;                // encrypt keys for current round
+        byte [] a = new byte[BLOCK_SIZE];
+        byte [] ta = new byte[BLOCK_SIZE];
+        byte [] Kdr;
         int    i, j, k, row, col;
 
-        // check for bad arguments
         if (cipher == null)
             throw new IllegalArgumentException("Empty ciphertext");
         if (cipher.length != BLOCK_SIZE)
             throw new IllegalArgumentException("Incorrect ciphertext length");
 
-        // copy ciphertext bytes into state and do initial AddRoundKey(state)
+        // copy ciphertext bytes vào state và khởi tạo AddRoundKey(state)
         Kdr = Kd[0];
         for (i = 0; i < BLOCK_SIZE; i++)    a[i] = (byte)(cipher[i] ^ Kdr[i]);
 
-        // for each round except last, apply round transforms
         for (int r = 1; r < numRounds; r++) {
-            Kdr = Kd[r];            // get session keys for this round
+            Kdr = Kd[r];
 
-            // InvShiftRows(state) into ta (nb. same shift as encrypt but subtract)
+            // InvShiftRows
             for (i = 0; i < BLOCK_SIZE; i++) {
                 row = i % COL_SIZE;
-                // get shifted byte index
                 k = (i + BLOCK_SIZE - (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;
                 ta[i] = a[k];
             }
 
-            // InvSubBytes(state) into a using inverse S-box Si
+            // InvSubBytes sử dụng inverse S-box
             for (i = 0; i < BLOCK_SIZE; i++) a[i] = Si[ta[i] & 0xFF];
 
-            // AddRoundKey(state) into ta
+            // AddRoundKey
             for (i = 0; i < BLOCK_SIZE; i++)    ta[i] = (byte)(a[i] ^ Kdr[i]);
 
-            // InvMixColumns(state) into a
-            //   implemented by expanding matrix mult for each column
-            //   see FIPS-197 section 5.3.3
+            // InvMixColumns
             for (col = 0; col < NUM_COLS; col++) {
-                i = col * COL_SIZE;        // start index for this col
+                i = col * COL_SIZE;
                 a[i]   = (byte)(mul(0x0e,ta[i]) ^ mul(0x0b,ta[i+1]) ^ mul(0x0d,ta[i+2]) ^ mul(0x09,ta[i+3]));
                 a[i+1] = (byte)(mul(0x09,ta[i]) ^ mul(0x0e,ta[i+1]) ^ mul(0x0b,ta[i+2]) ^ mul(0x0d,ta[i+3]));
                 a[i+2] = (byte)(mul(0x0d,ta[i]) ^ mul(0x09,ta[i+1]) ^ mul(0x0e,ta[i+2]) ^ mul(0x0b,ta[i+3]));
@@ -271,79 +197,63 @@ public class AES {
 
         }
 
-        // last round is special - only has InvShiftRows, InvSubBytes and AddRoundKey
-        Kdr = Kd[numRounds];            // get session keys for final round
+        // Như giải mã, vòng cuối chỉ dùng InvShiftRows, InvSubBytes và AddRoundKey
+        Kdr = Kd[numRounds];
 
-        // InvShiftRows(state) into ta
+        // InvShiftRows
         for (i = 0; i < BLOCK_SIZE; i++) {
             row = i % COL_SIZE;
-            // get shifted byte index
             k = (i + BLOCK_SIZE - (row_shift[row] * COL_SIZE)) % BLOCK_SIZE;
             ta[i] = a[k];
         }
 
-        // InvSubBytes(state) into ta using inverse S-box Si
+        // InvSubBytes
         for (i = 0; i < BLOCK_SIZE; i++) ta[i] = Si[ta[i] & 0xFF];
 
-        // AddRoundKey(state) into a
+        // AddRoundKey
         for (i = 0; i < BLOCK_SIZE; i++)    a[i] = (byte)(ta[i] ^ Kdr[i]);
         return (a);
     }
 
-
-    //......................................................................
-    /**
-     * Expand a user-supplied key material into a session key.
-     * <p>See FIPS-197 Section 5.3 Fig 11 for details of the key expansion.
-     * <p>Session keys will be saved in Ke and Kd instance variables,
-     * along with numRounds being the number of rounds for this sized key.
-     *
-     * @param key        The 128/192/256-bit AES key to use.
-     */
     public void setKey(byte[] key) {
-        // assorted internal constants
         final int BC = BLOCK_SIZE / 4;
         final int Klen = key.length;
         final int Nk = Klen / 4;
 
         int i, j, r;
 
-        // check for bad arguments
         if (key == null)
             throw new IllegalArgumentException("Empty key");
         if (!(key.length == 16 || key.length == 24 || key.length == 32))
             throw new IllegalArgumentException("Incorrect key length");
 
-        // set master number of rounds given size of this key
         numRounds = getRounds(Klen);
         final int ROUND_KEY_COUNT = (numRounds + 1) * BC;
 
-        // allocate 4 arrays of bytes to hold the session key values
-        // each array holds 1 of the 4 bytes [b0 b1 b2 b3] in each word w
+        // Tạo 4 mảng bytes để lưu giữ giá trị session key
+        // Mỗi mảng lưu 1 trong 4 byte [b0 b1 b2 b3] trong mỗi từ
         byte[] w0 = new byte[ROUND_KEY_COUNT];
         byte[] w1 = new byte[ROUND_KEY_COUNT];
         byte[] w2 = new byte[ROUND_KEY_COUNT];
         byte[] w3 = new byte[ROUND_KEY_COUNT];
 
-        // allocate arrays to hold en/decrypt session keys (by byte rather than word)
-        Ke = new byte[numRounds + 1][BLOCK_SIZE]; // encryption round keys
-        Kd = new byte[numRounds + 1][BLOCK_SIZE]; // decryption round keys
+        Ke = new byte[numRounds + 1][BLOCK_SIZE]; // round keys cho mã hóa
+        Kd = new byte[numRounds + 1][BLOCK_SIZE]; // round keys cho giải mã
 
-        // copy key into start of session array (by word, each byte in own array)
         for (i=0, j=0; i < Nk; i++) {
             w0[i] = key[j++]; w1[i] = key[j++]; w2[i] = key[j++]; w3[i] = key[j++];
         }
 
-        // implement key expansion algorithm
-        byte t0, t1, t2, t3, old0;        // temp byte values for each word
+        // Thuật toán mở rộng key
+        byte t0, t1, t2, t3, old0;
         for (i = Nk; i < ROUND_KEY_COUNT; i++) {
             t0 = w0[i-1]; t1 = w1[i-1]; t2 = w2[i-1]; t3 = w3[i-1];    // temp = w[i-1]
             if (i % Nk == 0) {
                 // temp = SubWord(RotWord(temp)) ^ Rcon[i/Nk]
-                old0 = t0;            // save old 1st byte value for t3 calc
-                t0 = (byte)(S[t1 & 0xFF] ^ rcon[i/Nk]);    // nb. constant XOR 1st byte only
+                old0 = t0;            // lưu t0 để tính t3
+                t0 = (byte)(S[t1 & 0xFF] ^ rcon[i/Nk]);
                 t1 = S[t2 & 0xFF];
-                t2 = S[t3 & 0xFF];    // nb. RotWord done by reordering bytes used
+                t2 = S[t3 & 0xFF];
                 t3 = S[old0 & 0xFF];
             }
             else if ((Nk > 6) && (i % Nk == 4)) {
@@ -357,9 +267,8 @@ public class AES {
             w3[i] = (byte)(w3[i-Nk] ^ t3);
         }
 
-        // now copy values into en/decrypt session arrays by round & byte in round
-        for (r = 0, i = 0; r < numRounds + 1; r++) {    // for each round
-            for (j = 0; j < BC; j++) {        // for each word in round
+        for (r = 0, i = 0; r < numRounds + 1; r++) {
+            for (j = 0; j < BC; j++) {
                 Ke[r][4*j] = w0[i];
                 Ke[r][4*j+1] = w1[i];
                 Ke[r][4*j+2] = w2[i];
@@ -401,11 +310,7 @@ public class AES {
             for(int i=0; i<16-rest; i++)
                 data = data + " ";
         }
-        /*if(data.length()/16 > ((int) data.length()/16)) {
-            int rest = data.length()-((int) data.length()/16)*16;
-            for(int i=0; i<rest; i++)
-                data += " ";
-        }*/
+
         int nParts = data.length() /16;
         byte[] res = new byte[data.length()];
         String partStr = "";
